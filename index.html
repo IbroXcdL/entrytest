@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+
+<!-- Keeps zoom disabled -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+
+<title>Data Entry → Google Sheet</title>
+
+<!-- Font Awesome for icons (no emojis) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<style>
+  /* ===== SECURITY / RESTRICTION CSS ===== */
+  html, body {
+    height:100%;
+    margin:0;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    overscroll-behavior-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background:linear-gradient(180deg, #f7f9ff 0%, #f6f7fb 100%);
+    color:#111;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* Allow interaction inside form fields */
+  input, textarea, select, button {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+  }
+
+  img, svg {
+    -webkit-user-drag: none;
+    user-drag: none;
+    pointer-events: none;
+  }
+
+  :root{
+    --bg:#f6f7fb;
+    --card:#ffffff;
+    --accent:#0b5fff;
+    --muted:#6b7280;
+    --success:#16a34a;
+    --danger:#e11d48;
+    --notice:#f59e0b;
+    --radius:12px;
+    --pad:16px;
+  }
+
+  .wrap{
+    max-width:920px;margin:28px auto;padding:20px;
+  }
+
+  header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  header h1{font-size:20px;margin:0}
+  header p{margin:0;color:var(--muted);font-size:13px}
+
+  .card{
+    background:var(--card);border-radius:var(--radius);box-shadow:0 6px 18px rgba(18,24,40,0.06);
+    padding:18px;
+  }
+
+  form{display:flex;flex-direction:column;gap:12px}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .col{flex:1;min-width:180px}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  input[type="number"], input[type="text"], input[type="date"], select, textarea {
+    width:100%;padding:10px;border-radius:8px;border:1px solid #e6e9ef;font-size:14px;
+    background:#fff;box-sizing:border-box;transition: border-color .18s ease, box-shadow .18s ease, transform .12s ease;
+  }
+  textarea{min-height:80px;resize:vertical;padding-top:10px}
+
+  .checkbox-grid{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .checkbox-grid label{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+  .checkbox-grid input[type="checkbox"]{width:16px;height:16px}
+
+  .actions{display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap}
+  button{background:var(--accent);color:#fff;border:0;padding:10px 14px;border-radius:10px;font-size:15px;cursor:pointer}
+  button.secondary{background:#fff;color:var(--accent);border:1px solid #e6e9ef}
+  .status{font-size:13px;color:var(--muted);margin-left:8px}
+
+  .hint{font-size:13px;color:var(--muted);margin-top:8px}
+
+  @media (max-width:600px){
+    .row{flex-direction:column}
+    header{gap:8px}
+    .actions{justify-content:space-between}
+  }
+
+  /* Toast / Modal styles */
+  .toast-container {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: calc(100% - 36px);
+    max-width: 420px;
+    pointer-events: none;
+  }
+  .toast {
+    pointer-events: auto;
+    display:flex;gap:12px;align-items:flex-start;
+    background:#fff;border-radius:10px;padding:12px 14px;
+    box-shadow:0 8px 24px rgba(15,23,42,0.12);border-left:4px solid transparent;
+  }
+  .toast .icon {
+    font-size:20px;line-height:1;color:var(--muted);width:28px;text-align:center;
+  }
+  .toast .body {flex:1}
+  .toast .title {font-weight:600;margin:0;color:#0f172a;font-size:14px}
+  .toast .msg {margin:4px 0 0;color:var(--muted);font-size:13px}
+  .toast .actions {margin-left:12px;display:flex;gap:8px;align-items:center}
+  .toast.success { border-left-color: var(--success); }
+  .toast.error   { border-left-color: var(--danger); }
+  .toast.info    { border-left-color: var(--notice); }
+
+  .toast button.dismiss {
+    background: transparent;border:0;color:var(--muted);font-size:16px;cursor:pointer;padding:6px;border-radius:6px;
+  }
+
+  /* Modal (for critical errors / confirmations) */
+  .modal-backdrop { position:fixed; inset:0; background: rgba(2,6,23,0.6); display:none; align-items:center; justify-content:center; z-index:1200; }
+  .modal { background:#fff; border-radius:12px; max-width:520px; width:90%; padding:18px; box-shadow:0 12px 36px rgba(2,6,23,0.4); }
+  .modal h3 { margin:0 0 6px 0; font-size:18px }
+  .modal p { margin:0 0 12px 0; color:var(--muted) }
+  .modal .row { display:flex; gap:10px; justify-content:flex-end; margin-top:12px; }
+  .modal .row button { min-width:90px; }
+
+  /* Invalid input styles + shake animation */
+  .invalid {
+    border-color: var(--danger) !important;
+    box-shadow: 0 6px 18px rgba(225,29,72,0.12);
+  }
+  @keyframes shake {
+    0% { transform: translateX(0); }
+    15% { transform: translateX(-8px); }
+    30% { transform: translateX(8px); }
+    45% { transform: translateX(-6px); }
+    60% { transform: translateX(6px); }
+    75% { transform: translateX(-3px); }
+    90% { transform: translateX(3px); }
+    100% { transform: translateX(0); }
+  }
+  .shake {
+    animation: shake 420ms ease-in-out;
+  }
+
+  /* Accessibility focus styles */
+  button:focus, input:focus, textarea:focus { outline: 3px solid rgba(11,95,255,0.12); outline-offset: 2px; }
+
+  /* ensure page is scrollable */
+  body > .wrap { min-height: calc(100vh - 56px); }
+</style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Sheet Data Entry</h1>
+      <p>Entries will be saved to a Google Sheet.</p>
+    </header>
+
+    <div class="card">
+      <form id="entryForm" autocomplete="off" novalidate>
+        <div class="row">
+          <div class="col">
+            <label for="kva">KVA (Rating)</label>
+            <input id="kva" name="kva" type="number" placeholder="Enter KVA rating" step="any" required />
+          </div>
+
+          <div class="col">
+            <label for="date">Date</label>
+            <input id="date" name="date" type="date" required />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label for="landmark">Landmark</label>
+            <input id="landmark" name="landmark" type="text" placeholder="Landmark, address, etc." />
+          </div>
+          <div class="col">
+            <label for="dtc">DTC</label>
+            <input id="dtc" name="dtc" type="text" placeholder="DTC number or text" />
+          </div>
+        </div>
+
+        <div style="margin-top:4px">
+          <label>Proposal / Not</label>
+          <div class="checkbox-grid">
+            <label><input type="checkbox" id="proposal" /> Tick = Proposal</label>
+          </div>
+        </div>
+
+        <div style="margin-top:6px">
+          <label>Approval of CI</label>
+          <div class="checkbox-grid">
+            <label><input type="checkbox" id="approval_ci" /> Approval of CI</label>
+          </div>
+        </div>
+
+        <div style="margin-top:6px">
+          <label>CI Done</label>
+          <div class="checkbox-grid">
+            <label><input type="checkbox" id="ci_done" /> CI Done</label>
+          </div>
+        </div>
+
+        <div style="margin-top:6px">
+          <label>Approval for MI</label>
+          <div class="checkbox-grid">
+            <label><input type="checkbox" id="approval_mi" /> Approval for MI</label>
+          </div>
+        </div>
+
+        <div style="margin-top:6px">
+          <label>MI Done</label>
+          <div class="checkbox-grid">
+            <label><input type="checkbox" id="mi_done" /> MI Done</label>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:8px">
+          <div class="col">
+            <label for="red_material">Red Material</label>
+            <input id="red_material" name="red_material" type="text" placeholder="Words or numbers" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" id="submitBtn"><i class="fa-solid fa-floppy-disk" style="margin-right:8px"></i> Save to Sheet</button>
+          <button type="button" class="secondary" id="clearBtn"><i class="fa-solid fa-eraser" style="margin-right:8px"></i> Clear</button>
+          <div class="status" id="status">Ready</div>
+        </div>
+
+        <div class="hint">Tip: date defaults to today. S. No. auto-generated.</div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Modal backdrop (optional for critical cases) -->
+  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal" role="document" aria-labelledby="modalTitle" aria-describedby="modalDesc">
+      <h3 id="modalTitle">Message</h3>
+      <p id="modalDesc">Details</p>
+      <div class="row">
+        <button id="modalClose" class="secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+<!-- =================== SECURITY / SCROLL HANDLING JS ==================== -->
+<script>
+(function() {
+
+  /* Disable right-click except inside form controls */
+  document.addEventListener("contextmenu", function(e) {
+    if (!["INPUT","TEXTAREA","SELECT","BUTTON"].includes(e.target.tagName)) {
+      e.preventDefault();
+    }
+  });
+
+  /* Disable copy/cut globally except inside inputs */
+  document.addEventListener("copy", e => {
+    if (!["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName)) e.preventDefault();
+  });
+  document.addEventListener("cut", e => {
+    if (!["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName)) e.preventDefault();
+  });
+
+  /* Block selection start outside inputs */
+  document.addEventListener("selectstart", e => {
+    if (!["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName)) e.preventDefault();
+  });
+
+  /* Disable gesturestart (iOS pinch) */
+  document.addEventListener("gesturestart", function(e) { e.preventDefault(); }, {passive:false});
+
+  /* Prevent double-tap zoom */
+  let lastTouch = 0;
+  document.addEventListener("touchend", function(e) {
+    const now = Date.now();
+    if (now - lastTouch <= 300) e.preventDefault();
+    lastTouch = now;
+  }, {passive:false});
+
+  /* Prevent pinch zoom (two-finger) */
+  document.addEventListener("touchmove", function(e) {
+    if (e.touches && e.touches.length > 1) e.preventDefault();
+  }, {passive:false});
+
+  /* Prevent ctrl+wheel zoom on desktop */
+  window.addEventListener("wheel", function(e) {
+    if (e.ctrlKey) e.preventDefault();
+  }, {passive:false});
+
+  /* --- Improved pull-to-refresh prevention while allowing normal vertical scrolling --- */
+  let touchStartY = 0;
+  document.addEventListener("touchstart", function(e) {
+    if (e.touches && e.touches.length === 1) touchStartY = e.touches[0].clientY;
+  }, {passive:true});
+
+  document.addEventListener("touchmove", function(e) {
+    if (!e.touches || e.touches.length !== 1) return;
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - touchStartY;
+
+    if (window.scrollY === 0 && deltaY > 0) {
+      e.preventDefault();
+    }
+  }, {passive:false});
+
+})();
+</script>
+
+<!-- =================== TOAST & MODAL JS (with 1.5s durations) ==================== -->
+<script>
+(function() {
+  const container = document.getElementById('toastContainer');
+  const modalBackdrop = document.getElementById('modalBackdrop');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalDesc = document.getElementById('modalDesc');
+  const modalClose = document.getElementById('modalClose');
+
+  modalClose.addEventListener('click', hideModal);
+
+  // Default short duration requested: 1500ms (1.5s)
+  const DEFAULT_TOAST_TIMEOUT = 1500;
+
+  function createToast(type, title, message, options = {}) {
+    // type: 'success' | 'error' | 'info'
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.setAttribute('role','status');
+
+    const icon = document.createElement('div');
+    icon.className = 'icon';
+    if (type === 'success') icon.innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--success)"></i>';
+    else if (type === 'error') icon.innerHTML = '<i class="fa-solid fa-circle-xmark" style="color:var(--danger)"></i>';
+    else icon.innerHTML = '<i class="fa-solid fa-circle-info" style="color:var(--notice)"></i>';
+
+    const body = document.createElement('div');
+    body.className = 'body';
+    const t = document.createElement('div');
+    t.className = 'title';
+    t.textContent = title || (type === 'success' ? 'Success' : (type === 'error' ? 'Error' : 'Notice'));
+    const m = document.createElement('div');
+    m.className = 'msg';
+    m.textContent = message || '';
+
+    body.appendChild(t);
+    body.appendChild(m);
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    const btn = document.createElement('button');
+    btn.className = 'dismiss';
+    btn.setAttribute('aria-label','Dismiss notification');
+    btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+    btn.addEventListener('click', () => {
+      if (toast.parentNode === container) container.removeChild(toast);
+    });
+
+    actions.appendChild(btn);
+
+    toast.appendChild(icon);
+    toast.appendChild(body);
+    toast.appendChild(actions);
+
+    container.appendChild(toast);
+
+    // Auto-hide: default 1500ms unless options specify otherwise.
+    const autoHide = options.autoHide !== undefined ? options.autoHide : true;
+    const timeout = options.timeout || DEFAULT_TOAST_TIMEOUT;
+
+    if (autoHide) {
+      setTimeout(() => {
+        if (toast.parentNode === container) container.removeChild(toast);
+      }, timeout);
+    }
+
+    return toast;
+  }
+
+  function showModal(title, message) {
+    modalTitle.textContent = title || 'Notice';
+    modalDesc.textContent = message || '';
+    modalBackdrop.style.display = 'flex';
+    modalBackdrop.setAttribute('aria-hidden','false');
+    modalClose.focus();
+  }
+
+  function hideModal() {
+    modalBackdrop.style.display = 'none';
+    modalBackdrop.setAttribute('aria-hidden','true');
+  }
+
+  // Expose to global
+  window.uiNotify = {
+    toast: createToast,
+    modal: showModal,
+    hideModal
+  };
+})();
+</script>
+
+<!-- =================== FORM SUBMISSION JS (with input shake + invalid styles) ==================== -->
+<script>
+(() => {
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwnSPEav2nUlcEf8W0JQaRIKuNjIRmql8WL5Sh_KIWpGyMwkelu_nKM03xQFXwtvgzuQ/exec"; // <-- REPLACE with your Apps Script web app URL
+
+  function boolToTickCross(b){ return b ? "Tick" : "Cross"; }
+
+  const form = document.getElementById('entryForm');
+  const statusEl = document.getElementById('status');
+  const submitBtn = document.getElementById('submitBtn');
+  const clearBtn = document.getElementById('clearBtn');
+
+  const dateInput = document.getElementById('date');
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth()+1).padStart(2,'0');
+  const dd = String(today.getDate()).padStart(2,'0');
+  dateInput.value = `${yyyy}-${mm}-${dd}`;
+
+  // Helper: mark input invalid with red border + shake + aria
+  function markInvalid(inputEl, message) {
+    if (!inputEl) return;
+    inputEl.classList.remove('shake');
+    inputEl.classList.add('invalid');
+    inputEl.setAttribute('aria-invalid','true');
+    inputEl.focus();
+
+    // trigger reflow to restart animation
+    void inputEl.offsetWidth;
+    inputEl.classList.add('shake');
+
+    // Remove shake after animation ends (420ms) and keep invalid style for 3s, then clear
+    setTimeout(() => {
+      inputEl.classList.remove('shake');
+    }, 450);
+
+    setTimeout(() => {
+      inputEl.classList.remove('invalid');
+      inputEl.removeAttribute('aria-invalid');
+    }, 3000);
+
+    // Small toast as well (short)
+    window.uiNotify.toast('error','Required', message || 'Please fill this field.', { autoHide: true, timeout: 1500 });
+  }
+
+  clearBtn.addEventListener('click', () => {
+    form.reset();
+    dateInput.value = `${yyyy}-${mm}-${dd}`;
+    statusEl.textContent = "Cleared";
+    window.uiNotify.toast('info','Cleared','Form inputs have been cleared.', {autoHide: true, timeout: 1500});
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Simple client-side validation (KVA + Date required)
+    const kvaEl = document.getElementById('kva');
+    const dateEl = document.getElementById('date');
+    const kvaVal = kvaEl.value && kvaEl.value.trim();
+    const dateVal = dateEl.value && dateEl.value.trim();
+
+    if (!kvaVal) {
+      statusEl.textContent = "Validation error";
+      markInvalid(kvaEl, 'KVA (Rating) is required.');
+      return;
+    }
+    if (!dateVal) {
+      statusEl.textContent = "Validation error";
+      markInvalid(dateEl, 'Date is required.');
+      return;
+    }
+
+    const payload = {
+      kva: kvaVal,
+      date: dateVal,
+      landmark: document.getElementById('landmark').value || "",
+      dtc: document.getElementById('dtc').value || "",
+      proposal: boolToTickCross(document.getElementById('proposal').checked),
+      approval_ci: boolToTickCross(document.getElementById('approval_ci').checked),
+      ci_done: boolToTickCross(document.getElementById('ci_done').checked),
+      approval_mi: boolToTickCross(document.getElementById('approval_mi').checked),
+      mi_done: boolToTickCross(document.getElementById('mi_done').checked),
+      red_material: document.getElementById('red_material').value || ""
+    };
+
+    statusEl.textContent = "Sending...";
+    submitBtn.disabled = true;
+
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'cors',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        // try parse error message
+        let msg = 'Network error';
+        try { const r = await res.json(); msg = r.message || msg; } catch (err) {}
+        // Show short error toast (1.5s)
+        statusEl.textContent = "Network error";
+        window.uiNotify.toast('error','Network error', msg, { autoHide: true, timeout: 1500 });
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data && data.result === 'success') {
+        statusEl.textContent = "Saved — S. No. " + (data.serial || "(unknown)");
+        window.uiNotify.toast('success','Saved','Entry saved successfully. S. No. ' + (data.serial || ""), { autoHide: true, timeout: 1500 });
+        form.reset();
+        dateInput.value = `${yyyy}-${mm}-${dd}`;
+      } else {
+        const msg = (data && data.message) ? data.message : 'Unknown server response';
+        statusEl.textContent = "Server error";
+        // Show error toast (1.5s)
+        window.uiNotify.toast('error','Server error', msg, { autoHide: true, timeout: 1500 });
+      }
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = "Error sending";
+      // Short error toast (1.5s)
+      window.uiNotify.toast('error','Submission failed', err.message || 'An error occurred while sending data.', { autoHide: true, timeout: 1500 });
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+})();
+</script>
+
+</body>
+</html>
